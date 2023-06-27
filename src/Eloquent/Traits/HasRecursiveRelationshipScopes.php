@@ -177,7 +177,7 @@ trait HasRecursiveRelationshipScopes
 
         $query = $this->newModelQuery()
             ->select('*')
-            ->selectRaw($initialDepth.' as '.$depth)
+            ->selectRaw('(' . $initialDepth . ')::int as ' . $depth)
             ->selectRaw($initialPath)
             ->from($from);
 
@@ -210,12 +210,12 @@ trait HasRecursiveRelationshipScopes
         $depth = $grammar->wrap($this->getDepthName());
 
         $joinColumns = [
-            'asc' => [
-                $name.'.'.$this->getParentKeyName(),
+            'asc'  => [
+                $name . '.' . $this->getParentKeyName(),
                 $this->getQualifiedLocalKeyName(),
             ],
             'desc' => [
-                $name.'.'.$this->getLocalKeyName(),
+                $name . '.' . $this->getLocalKeyName(),
                 $this->qualifyColumn($this->getParentKeyName()),
             ],
         ];
@@ -223,7 +223,7 @@ trait HasRecursiveRelationshipScopes
         if ($direction === 'both') {
             $recursiveDepth = "$depth + (case when {$joinColumns['desc'][1]}={$joinColumns['desc'][0]} then 1 else -1 end)";
         } else {
-            $recursiveDepth = $depth.' '.($direction === 'asc' ? '-' : '+').' 1';
+            $recursiveDepth = $depth . ' ' . ($direction === 'asc' ? '-' : '+') . ' 1';
         }
 
         $recursivePath = $grammar->compileRecursivePath(
@@ -234,8 +234,8 @@ trait HasRecursiveRelationshipScopes
         $recursivePathBindings = $grammar->getRecursivePathBindings($this->getPathSeparator());
 
         $query = $this->newModelQuery()
-            ->select($table.'.*')
-            ->selectRaw($recursiveDepth.' as '.$depth)
+            ->select($table . '.*')
+            ->selectRaw('(' . $recursiveDepth . ')::int as ' . $depth)
             ->selectRaw($recursivePath, $recursivePathBindings)
             ->from($from);
 
@@ -278,7 +278,7 @@ trait HasRecursiveRelationshipScopes
 
             $depth = $this->getDepthName();
 
-            $query->where(function (Builder  $query) use ($depth, $joinColumns) {
+            $query->where(function (Builder $query) use ($depth, $joinColumns) {
                 $query->where($depth, '=', 0)
                     ->orWhere(function (Builder $query) use ($depth, $joinColumns) {
                         $query->whereColumn($joinColumns['asc'][0], '=', $joinColumns['asc'][1])
